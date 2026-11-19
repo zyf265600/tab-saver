@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Saver",
+  "version": "1.0.0",
+  "description": "自动休眠长时间未使用的标签页，释放内存。支持自定义休眠时间和网站白名单。",
+  "permissions": ["tabs", "alarms", "storage", "favicon", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Tab Saver",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "minimum_chrome_version": "121"
+}

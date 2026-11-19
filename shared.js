@@ -48,7 +48,7 @@ function isProtected(tab, whitelist) {
 
 /* ---------- Sleep marker ----------
  * Chrome lets extensions neither recolor tabs nor draw on the tab strip. What it does allow is
- * changing a page's own favicon. So right before discarding, we replace the favicon with a greyed
+ * changing a page's own favicon. So right before discarding, we replace the favicon with a
  * copy wrapped in a dashed ring. A discarded tab keeps the last favicon it had, so the marker stays
  * visible while the tab sleeps; when the tab is reopened the page reloads with its real favicon.
  */
@@ -67,9 +67,7 @@ async function makeSleepIcon(tab) {
     url.searchParams.set("size", "64");
     const bitmap = await createImageBitmap(await (await fetch(url)).blob());
     const inner = 34;
-    ctx.filter = "grayscale(1) opacity(0.5)";
     ctx.drawImage(bitmap, center - inner / 2, center - inner / 2, inner, inner);
-    ctx.filter = "none";
   } catch {
     // No favicon available: the ring alone still marks the tab.
   }

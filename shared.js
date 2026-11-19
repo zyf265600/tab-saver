@@ -66,14 +66,14 @@ async function makeSleepIcon(tab) {
     url.searchParams.set("pageUrl", tab.url);
     url.searchParams.set("size", "64");
     const bitmap = await createImageBitmap(await (await fetch(url)).blob());
-    const inner = 34;
-    ctx.drawImage(bitmap, center - inner / 2, center - inner / 2, inner, inner);
+    // Full size: the tab strip gives a favicon a fixed square, so the ring is drawn on top of the icon's edge.
+    ctx.drawImage(bitmap, 0, 0, size, size);
   } catch {
     // No favicon available: the ring alone still marks the tab.
   }
 
-  ctx.strokeStyle = "#9aa0a6"; // mid grey, readable on both light and dark tab strips
-  ctx.lineWidth = 5;
+  ctx.strokeStyle = "rgba(200, 203, 208, 0.4)"; // faint, half-transparent grey
+  ctx.lineWidth = 6;
   ctx.setLineDash([9, 6]);
   ctx.beginPath();
   ctx.arc(center, center, center - 4, 0, Math.PI * 2);

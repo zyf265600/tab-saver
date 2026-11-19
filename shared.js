@@ -49,10 +49,12 @@ function isProtected(tab, whitelist) {
 /* ---------- Sleep marker ----------
  * Chrome lets extensions neither recolor tabs nor draw on the tab strip. What it does allow is
  * changing a page's own favicon. So right before discarding, we replace the favicon with a
- * copy wrapped in a dashed ring. A discarded tab keeps the last favicon it had, so the marker stays
- * visible while the tab sleeps; when the tab is reopened the page reloads with its real favicon.
+ * copy wrapped in a dashed ring, and prefix the title with 💤. A discarded tab keeps the last favicon
+ * and title it had, so the marker stays visible while the tab sleeps; when the tab is reopened the
+ * page reloads with its real favicon and title.
  */
 const SLEEP_ICON_SIZE = 64;
+const SLEEP_TITLE_PREFIX = "💤 ";
 const MARKER_SETTLE_MS = 400; // give Chrome time to pick up the new favicon before discarding
 
 async function makeSleepIcon(tab) {
@@ -72,7 +74,7 @@ async function makeSleepIcon(tab) {
     // No favicon available: the ring alone still marks the tab.
   }
 
-  ctx.strokeStyle = "rgba(200, 203, 208, 0.4)"; // faint, half-transparent grey
+  ctx.strokeStyle = "rgba(200, 203, 208, 0.7)"; // light grey, 70% opaque
   ctx.lineWidth = 6;
   ctx.setLineDash([9, 6]);
   ctx.beginPath();
@@ -85,30 +87,35 @@ async function makeSleepIcon(tab) {
   return "data:image/png;base64," + btoa(binary);
 }
 
-// Runs inside the page. Keeps the original icon links so they can be put back if the discard fails.
-function swapFaviconInPage(href) {
+// Runs inside the page: swaps in the sleep favicon and prefixes the title with 💤.
+// Keeps the originals so they can be put back if the discard fails.
+function markPageAsleep(href, titlePrefix) {
   const originals = [...document.querySelectorAll('link[rel~="icon"]')];
   window.__tabSaverOriginalIcons = originals;
+  window.__tabSaverOriginalTitle = document.title;
   originals.forEach((link) => link.remove());
   const link = document.createElement("link");
   link.rel = "icon";
   link.href = href;
   link.dataset.tabSaver = "1";
   document.head.append(link);
+  if (!document.title.startsWith(titlePrefix)) document.title = titlePrefix + document.title;
 }
 
-// Runs inside the page. Undoes swapFaviconInPage.
-function restoreFaviconInPage() {
+// Runs inside the page. Undoes markPageAsleep.
+function restorePageInPage() {
   document.querySelectorAll("link[data-tab-saver]").forEach((link) => link.remove());
   (window.__tabSaverOriginalIcons || []).forEach((link) => document.head.append(link));
+  if (window.__tabSaverOriginalTitle != null) document.title = window.__tabSaverOriginalTitle;
   delete window.__tabSaverOriginalIcons;
+  delete window.__tabSaverOriginalTitle;
 }
 
 // Returns true if the marker was applied. Some pages (PDF viewer, Chrome Web Store) refuse scripts.
 async function markAsleep(tab) {
   try {
     const icon = await makeSleepIcon(tab);
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: swapFaviconInPage, args: [icon] });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: markPageAsleep, args: [icon, SLEEP_TITLE_PREFIX] });
     return true;
   } catch (error) {
     console.debug("Tab Saver: could not mark tab", tab.id, error);
@@ -118,7 +125,7 @@ async function markAsleep(tab) {
 
 async function unmarkAsleep(tabId) {
   try {
-    await chrome.scripting.executeScript({ target: { tabId }, func: restoreFaviconInPage });
+    await chrome.scripting.executeScript({ target: { tabId }, func: restorePageInPage });
   } catch {
     // Tab is gone or not scriptable; nothing to undo.
   }
